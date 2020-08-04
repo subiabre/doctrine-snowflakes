@@ -10,6 +10,12 @@
     "require-dev": {
         "phpunit/phpunit": "^9.2"
     },
+    "autoload": {
+        "psr-4": { "Subiabre\\": "src/" }
+    },
+    "autoload-dev": {
+        "psr-4": { "Subiabre\\Tests\\": "tests/" }
+    },
     "license": "MIT",
     "authors": [
         {
