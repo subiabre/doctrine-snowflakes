@@ -45,12 +45,11 @@ class SnowflakeGenerator extends AbstractIdGenerator
     private $id;
 
     public function __construct()
-    {
-        $dotenv = new Dotenv(false);
-        $env = \dirname(__DIR__, 2) . '/.env';
+    {;
+        $dotenv = new Dotenv();
 
         try {
-            $dotenv->loadEnv($env);
+            $dotenv->loadEnv(\dirname(__DIR__, 2) . '/.env');
 
             $datacenter = $_ENV['DATACENTER_ID'];
             $worker = $_ENV['WORKER_ID'];
