@@ -49,7 +49,7 @@ class SnowflakeGenerator extends AbstractIdGenerator
         $dotenv = new Dotenv();
 
         try {
-            $dotenv->loadEnv(\dirname(__DIR__, 2) . '/.env');
+            $dotenv->loadEnv(\dirname(__DIR__, 3) . '/.env');
 
             $datacenter = $_ENV['DATACENTER_ID'];
             $worker = $_ENV['WORKER_ID'];
@@ -75,7 +75,7 @@ class SnowflakeGenerator extends AbstractIdGenerator
 
     public function generate(EntityManager $em, $entity)
     {
-        return $this->getId();
+        return $this->new();
     }
 
     /**
@@ -110,7 +110,9 @@ class SnowflakeGenerator extends AbstractIdGenerator
     {
         if ($this->id) return $this->id;
 
-        return $this->new();
+        $this->id = $this->new();
+
+        return $this->id;
     }
 
     /**
@@ -119,8 +121,6 @@ class SnowflakeGenerator extends AbstractIdGenerator
      */
     public function new(): string
     {
-        $this->id = $this->generator->id();
-
-        return $this->id;
+        return $this->generator->id();
     }
 }
