@@ -2,12 +2,12 @@
 
 namespace Subiabre;
 
-use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Id\AbstractIdGenerator;
-use Exception;
-use Godruoyi\Snowflake\RandomSequenceResolver;
+use Godruoyi\Snowflake\FileLockResolver;
+use Godruoyi\Snowflake\SequenceResolver;
 use Godruoyi\Snowflake\Snowflake;
-use Symfony\Component\Dotenv\Dotenv;
+use Godruoyi\Snowflake\Sonyflake;
 
 /**
  * Generate numeric, time based ids that are ideal for distributed environments
@@ -17,110 +17,84 @@ class SnowflakeGenerator extends AbstractIdGenerator
     /**
      * @var int Number of the datacenter
      */
-    public $datacenter;
+    public readonly int $datacenter;
 
     /**
      * @var int Number of the worker machine
      */
-    public $worker;
+    public readonly int $worker;
 
     /**
      * @var int UNIX date of start for timestamps
      */
-    public $stardate;
+    public readonly int $stardate;
+
+    /**
+     * @var string Path to the lock directory for the sequence resolver
+     */
+    public readonly string $lockdir;
+
+    /**
+     * @var SequenceResolver
+     */
+    private SequenceResolver $resolver;
 
     /**
      * @var Snowflake
      */
-    private $generator;
+    private Snowflake $generator;
 
     /**
-     * @var SequenceResolverInterface
+     * @param int $startdate UNIX timestamp, by default its 2000-01-01
+     * @param int $datacenter ID of the datacenter
+     * @param int $worker ID of the worker machine
      */
-    private $resolver;
-
-    /**
-     * @var int
-     */
-    private $id;
-
-    public function __construct()
-    {;
-        $dotenv = new Dotenv();
-
-        try {
-            $dotenv->loadEnv(\dirname(__DIR__, 3) . '/.env');
-
-            $datacenter = $_ENV['DATACENTER_ID'];
-            $worker = $_ENV['WORKER_ID'];
-            $startdate = \strtotime($_ENV['START_DATE']) * 1000;
-        } catch (Exception $e) {
-            $datacenter = 0;
-            $worker = 0;
-            $startdate = \strtotime('2000-01-01') * 1000;
-        }
-
+    public function __construct(
+        int $startdate = 946681200000,
+        int $datacenter = 0,
+        int $worker = 0
+    ) {;
+        $this->stardate   = $startdate;
         $this->datacenter = $datacenter;
-        $this->worker = $worker;
-        $this->stardate = $startdate;
-        
-        $this->buildRandomResolver();
-        $this->buildGenerator();
+        $this->worker     = $worker;
+        $this->lockdir    = sprintf('%s%s%s', dirname(__DIR__), DIRECTORY_SEPARATOR, 'lock');
+
+        $this->resolver  = $this->buildResolver();
+        $this->generator = $this->buildGenerator();
     }
 
-    public function __toString(): string
+    public function new()
     {
-        return $this->getId();
+        return $this->generator->id();
     }
 
-    public function generate(EntityManager $em, $entity)
+    public function generateId(EntityManagerInterface $em, $entity)
     {
-        return $this->new();
+        return $this->generator->id();
     }
 
     /**
      * Build the resolver using the RandomSequenceResolver
      */
-    private function buildRandomResolver()
+    private function buildResolver(): SequenceResolver
     {
-        $this->resolver = new RandomSequenceResolver;
+        return new FileLockResolver($this->lockdir);
     }
 
     /**
      * Build the generator given the internal instance data
      */
-    private function buildGenerator()
+    private function buildGenerator(): Snowflake
     {
-        $generator = new Snowflake(
+        $generator = new Sonyflake(intval(sprintf(
+            '%d%d',
             $this->datacenter,
             $this->worker
-        );
+        )));
 
         $generator->setStartTimeStamp($this->stardate);
         $generator->setSequenceResolver($this->resolver);
 
-        $this->generator = $generator;
-    }
-
-    /**
-     * Get the generated id
-     * @return string
-     */
-    public function getId(): string
-    {
-        if ($this->id) return $this->id;
-
-        $this->id = $this->new();
-
-        return $this->id;
-    }
-
-    /**
-     * Generate a new id
-     * @return string
-     */
-    public function new(): string
-    {
-        return $this->generator->id();
+        return $generator;
     }
 }
