@@ -3,12 +3,11 @@
     "description": "Custom id generator implementing snowflake algorithm",
     "type": "library",
     "require": {
-        "godruoyi/php-snowflake": "^1.0",
-        "symfony/dotenv": "^5.1",
-        "doctrine/orm": "^2.7"
+        "doctrine/orm": "^2.16",
+        "godruoyi/php-snowflake": "^3.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.2"
+        "phpunit/phpunit": "^10.4"
     },
     "autoload": {
         "psr-4": { "Subiabre\\": "src/" }
@@ -19,7 +18,7 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Facu",
+            "name": "Daniel Subiabre",
             "email": "subiabrewd@gmail.com"
         }
     ]
