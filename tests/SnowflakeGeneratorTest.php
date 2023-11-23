@@ -8,21 +8,51 @@ use PHPUnit\Framework\TestCase;
 
 class SnowflakeGeneratorTest extends TestCase
 {
-    public static function provideIds(): array
+    private const BATCH_SIZE = 300;
+
+    public function testLockdirThrowsExceptionOnPathNotFound()
     {
-        $array = array_fill(0, 100, null);
+        $this->expectException(\Exception::class);
+
+        new SnowflakeGenerator(lockdir: 'nopath');
+    }
+
+    public function testLockdirThrowsExceptionOnPathNotDirectory()
+    {
+        $this->expectException(\Exception::class);
+
+        new SnowflakeGenerator(lockdir: __FILE__);
+    }
+
+    public function testLockdirLoadsDirectory()
+    {
+        $generator = new SnowflakeGenerator(lockdir: __DIR__);
+
+        $this->assertSame(__DIR__, $generator->lockdir);
+    }
+
+    private static function getBatchSize(): int
+    {
+        $size = getenv('BATCH_SIZE');
+
+        return $size
+            ? $size
+            : self::BATCH_SIZE;
+    }
+
+    public static function provideIdsBatches(): array
+    {
+        $array = array_fill(0, self::getBatchSize(), null);
         $generator = new SnowflakeGenerator();
 
-        return array_fill(0, 100, [array_map(function() use ($generator) {
+        return array_fill(0, 10, [array_map(function() use ($generator) {
             return $generator->new();
         }, $array)]);
     }
 
-    #[DataProvider('provideIds')]
-    public function testNotConcurrent($ids)
+    #[DataProvider('provideIdsBatches')]
+    public function testNotConcurrentInBatch($ids)
     {
-        $this->assertCount(100, $ids);
-
         foreach ($ids as $id) {
             $this->assertEquals(1, count(array_keys($ids, $id)));
         }
